@@ -1,9 +1,11 @@
 "use client"
+import { toast } from "sonner";
 import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { courses, userProgress } from "@/db/schema"
 import { upsertUserProgress } from "@/actions/user-progress";
 import { Card } from "./card";
+
 
 
 
@@ -25,6 +27,7 @@ export const List = ({ courses, activeCourseId }: Props) => {
 
         startTransition(() => {
             upsertUserProgress(id)
+                .catch(() => toast.error("Something went wrong"))
         })
     }
     return (
@@ -36,7 +39,7 @@ export const List = ({ courses, activeCourseId }: Props) => {
                     title={course.title}
                     imageSrc={course.imageSrc}
                     onClick={onClick}
-                    disabled={false}
+                    disabled={pending}
                     active={course.id === activeCourseId}
                 />
             ))}

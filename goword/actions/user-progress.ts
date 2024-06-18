@@ -22,6 +22,8 @@ export const upsertUserProgress = async (courseId: number) => {
         throw new Error("Course not found")
     }
 
+
+
     // if (!course.units.length || !course.unit[0].lessons.length) {
     //     throw new Error("Course is empty")
     // }
