@@ -1,4 +1,7 @@
-import { useEffect, useState } from "react";
+// Define los tipos
+
+
+// learn/page.tsx
 import { StickyWrapper } from "@/components/sticky-wrapper";
 import { FeedWrapper } from "@/components/feed-wrapper";
 import { Header } from "./header";
@@ -6,49 +9,41 @@ import { UserProgress } from "@/components/user-progress";
 import { getUserProgress, getUnits } from "@/db/queries";
 import { redirect } from "next/navigation";
 import { Unit } from "./unit";
+import { title } from "process";
 
-const LearnPage: React.FC = () => {
-    const [userProgress, setUserProgress] = useState<any>(null); // Ajusta el tipo según la estructura de tus datos
-    const [units, setUnits] = useState<any[]>([]); // Ajusta el tipo según la estructura de tus datos
 
-    useEffect(() => {
-        const fetchData = async () => {
-            try {
-                const userProgressData = await getUserProgress();
-                setUserProgress(userProgressData);
 
-                if (!userProgressData || !userProgressData.activeCourse) {
-                    redirect("/courses");
-                    return;
-                }
+const LearnPage = async () => {
 
-                const unitsData = await getUnits();
-                setUnits(unitsData);
-            } catch (error) {
-                console.error("Error fetching data:", error);
-                // Manejar errores de manera apropiada, por ejemplo, redirigiendo a una página de error
-            }
-        };
+    const userProgressData = getUserProgress();
+    const unitsData = getUnits();
 
-        fetchData();
-    }, []);
+    const [
+        userProgress,
+        units
+    ] = await Promise.all([
+        userProgressData,
+        unitsData,
+    ]);
 
     if (!userProgress || !userProgress.activeCourse) {
-        return <div>Redirecting...</div>; // Ajusta esto según tu lógica de redirección
+        return redirect("/courses");
     }
+
+
 
     return (
         <div className="flex flex-row-reverse gap-[48px] px-6">
             <StickyWrapper>
                 <UserProgress
-                    activeCourse={userProgress.activeCourse}
+                    activeCourse={userProgress?.activeCourse}
                     progress={userProgress.progress}
                     badges={5}
                     hasActiveSubscription={false}
                 />
             </StickyWrapper>
             <FeedWrapper>
-                <Header title={userProgress.activeCourse.title} />
+                <Header title={userProgress.activeCourse.title || ""} />
                 {units.map((unit) => (
                     <div key={unit.id} className="mb-10">
                         <Unit
@@ -62,6 +57,7 @@ const LearnPage: React.FC = () => {
                         />
                     </div>
                 ))}
+
             </FeedWrapper>
         </div>
     );
