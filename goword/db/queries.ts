@@ -8,25 +8,6 @@ import { eq } from "drizzle-orm";
 
 
 
-// export const getUserProgress = cache(async () => {
-//     const { userId } = await auth();
-
-//     if (!userId || !userProgress?.activeCourseId) {
-//         return null
-//     }
-
-//     const data = await db.query.userProgress.findFirst({
-//         where: eq(userProgress.userId, userId),
-//         with: {
-//             activeCourse: true
-//         }
-//     })
-
-//     return data
-// });
-
-
-
 export const getUserProgress = cache(async () => {
     const { userId } = await auth();
 
@@ -35,10 +16,11 @@ export const getUserProgress = cache(async () => {
     }
 
     const data = await db.query.userProgress.findFirst({
-        where: eq(userProgress.userId, userId),
+        where: eq(userProgress.userId, userId,),
         with: {
-            activeCourse: true
-        }
+            activeCourse: true,
+        },
+
     });
 
     if (!data) {
@@ -94,7 +76,7 @@ export const getUnits = cache(async () => {
             const allCompletedChallenges = lesson.challenges.every((challenge) => {
                 return challenge.challengesProgress
                     && challenge.challengesProgress.length > 0
-                    && challenge.challengesProgress.every((progress) => progress.completed);
+                    && challenge.challengesProgress.every((badges) => badges.completed);
             });
 
             return { ...lesson, completed: allCompletedChallenges };
@@ -159,7 +141,7 @@ export const getCourseProgress = cache(async () => {
             return lesson.challenges.some((challenge) => {
                 return !challenge.challengesProgress
                     || challenge.challengesProgress.length === 0
-                    || challenge.challengesProgress.some((progress) => progress.completed === false)
+                    || challenge.challengesProgress.some((badges) => badges.completed === false)
             })
         });
 

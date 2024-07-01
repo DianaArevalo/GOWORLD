@@ -9,15 +9,13 @@ import { Button } from "./ui/button";
 
 type Props = {
     activeCourse: typeof courses.$inferSelect;
-    badges: number;
-    progress: number;
+    progress: number
     hasActiveSubscription: boolean;
 };
 
 export const UserProgress = ({
     activeCourse,
     progress,
-    badges,
     hasActiveSubscription
 }: Props) => {
     return (
@@ -33,19 +31,14 @@ export const UserProgress = ({
                     />
                 </Button>
             </Link>
-            <Link href="/shop">
-                <Button variant="ghost" className="text-orange-500">
-                    <Image src="/progress.svg" height={28} width={28} alt="Progress" className="mr-2" />
-                    {progress}
-                </Button>
-            </Link>
+
             <Link href="/shop">
                 <Button variant="ghost" className="text-rose-500">
-                    <Image src="/leaderboard.svg" height={28} width={28} alt="Badges" className="mr-2" />
+                    <Image src="/progress.svg" height={28} width={28} alt="Progress" className="mr-2" />
                     {hasActiveSubscription ? (
                         <InfinityIcon className="h-4 w-4 stroke-[3]" />
                     ) : (
-                        badges
+                        progress
                     )}
                 </Button>
             </Link>

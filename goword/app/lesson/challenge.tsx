@@ -1,33 +1,34 @@
-import { challenges, challengesOptions } from "@/db/schema";
 import { cn } from "@/lib/utils";
+import { challenges, challengesOptions } from "@/db/schema"
 import { Card } from "./card";
 
 
 type Props = {
-    options: typeof challengesOptions.$inferSelect[]
-    onSelect: (id: number) => void
+    options: typeof challengesOptions.$inferSelect[];
+    onSelect: (id: number) => void;
     status: "correct" | "wrong" | "none";
     selectedOption?: number;
-    disabled?: boolean
+    disabled?: boolean;
     type: typeof challenges.$inferSelect["type"]
 }
 
 
-const Challenge = ({
+export const Challenge = ({
     options,
     onSelect,
     status,
     selectedOption,
     disabled,
-    type
-
-
+    type,
 }: Props) => {
+    console.log(options);
+
     return (
         <div className={cn(
             "grid gap-2",
-            type == "ASSIST" && "grid-cols-1",
-            type == "SELECT" && "grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(0,1fr))]",
+            type === "ASSIST" && "grid-cols-1",
+            type === "SELECT" && "grid-cols-2 lg:grid-cols-[repeat(auto-fit,minmax(0,1fr))]"
+
         )}>
             {options.map((option, i) => (
                 <Card
@@ -45,7 +46,5 @@ const Challenge = ({
                 />
             ))}
         </div>
-    );
+    )
 }
-
-export default Challenge;
