@@ -10,6 +10,7 @@ type Props = {
     selectedOption?: number;
     disabled?: boolean;
     type: typeof challenges.$inferSelect["type"]
+
 }
 
 

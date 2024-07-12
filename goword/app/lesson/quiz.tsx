@@ -1,7 +1,11 @@
 "use client"
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { toast } from "sonner";
+
 import { challengesOptions, challenges } from "@/db/schema";
+// import { upsertUserProgress } from "@/actions/user-progress";
+import { addProgress } from "@/actions/user-progress";
 
 import { Header } from "./header";
 import { Footer } from "./footer";
@@ -14,48 +18,43 @@ type Props = {
     initialLessonId: number;
     initialLessonChallenges: (typeof challenges.$inferSelect & {
         completed: boolean;
-        challengeOptions: typeof challengesOptions.$inferSelect[]
+        challengesOptions: typeof challengesOptions.$inferSelect[];
     })[];
     userSubscription: any;
 };
-
-
-
-
-
 
 export const Quiz = ({
     initialPercentage,
     initialLessonId,
     initialLessonChallenges,
-    userSubscription
+    userSubscription,
 }: Props) => {
-
     console.log("initialLessonChallenges", initialLessonChallenges);
 
+    const [pending, startTransition] = useTransition();
     const [percentage, setPercentage] = useState(initialPercentage);
     const [challenges, setChallenges] = useState(initialLessonChallenges);
     const [activeIndex, setActiveIndex] = useState(() => {
-        const uncompletedIndex = challenges.findIndex((challenge) => !challenge.completed);
+        const uncompletedIndex = challenges.findIndex((challenge) => challenge.completed);
         return uncompletedIndex === -1 ? 0 : uncompletedIndex;
     });
 
     const [selectedOption, setSelectedOption] = useState<number>();
-    const [status, setStatus] = useState<"correct" | "wrong" | "none">("none")
+    const [status, setStatus] = useState<"correct" | "wrong" | "none">("none");
 
     const challenge = challenges[activeIndex];
-    const options = challenge?.challengesOptions || [];
+    const options = challenge?.challengesOptions ?? [];
 
     const onNext = () => {
-        serActiveIndex((current) => current + 1)
-    }
+        setActiveIndex((current) => current + 1)
+
+    };
 
     const onSelect = (id: number) => {
         if (status !== "none") return;
 
-        setSelectedOption(id)
-
-    }
+        setSelectedOption(id);
+    };
 
     const onContinue = () => {
         if (!selectedOption) return;
@@ -68,25 +67,53 @@ export const Quiz = ({
 
         if (status === "correct") {
             onNext();
-            setStatus("none");
-            setSelectedOption(undefined);
+            setStatus("none")
+            setSelectedOption(undefined)
             return;
         }
 
-        const correctOption = options.find((option: any) => option.correct);
 
-        if (!correctOption) {
-            return
-        }
+        const correctOption = options.find((option) => option.correct);
 
-        if (correctOption.id === selectedOption) {
-            console.log("correct option!");
 
+        if (correctOption && correctOption.id === selectedOption) {
+
+            startTransition(() => {
+                addProgress(challenge.id)
+                    .then((response) => {
+                        if (response?.error === "progress" || initialPercentage === 0) {
+                            setStatus("correct");
+                            setChallenges(
+                                (prev) =>
+                                    prev.map((ch) =>
+                                        ch.id === challenge.id ? { ...ch, completed: true } : ch
+                                    )
+                            );
+                            setPercentage((prev) => prev + 100 / challenges.length);
+                            setPercentage((prev) => Math.min(prev + 1))
+                            onNext()
+                            console.error("Adding your progress");
+
+                            return
+                        } else {
+                            setStatus("wrong")
+                            console.log("Please try again");
+                        }
+
+                    }).catch(() => toast.error("Something went wrong. Please try again"))
+            });
         } else {
+            setStatus("wrong");
             console.log("Incorrect option!");
-
         }
-    }
+        // if (initialPercentage === 100) {
+        //     setPercentage((prev) => prev + 100 / challenges.length);
+        //     setPercentage((prev) => Math.min(prev + 1, 3))
+        //     // Avanzar al siguiente desafío  
+        // }
+
+    };
+
 
     const title = challenge?.type === "ASSIST"
         ? "Select the correct meaning"
@@ -112,17 +139,36 @@ export const Quiz = ({
                             onSelect={onSelect}
                             status={status}
                             selectedOption={selectedOption}
-                            disabled={false}
+                            disabled={pending}
                             type={challenge?.type}
+                        // completed={challenge?.completed}
                         />
                     </div>
                 </div>
             </div>
             <Footer
-                disabled={!selectedOption}
+                disabled={pending || !selectedOption}
                 status={status}
                 onCheck={onContinue}
             />
         </>
     );
 };
+
+// upsertUserProgress(challenge.id)
+//     .then((res) => {
+//         if (res) {
+//             console.log("correct option!");
+//             // Actualizar el progreso del desafío en el frontend
+
+
+//         } else {
+//             toast.error("Failed to update progress. Please try again.");
+//         }
+
+//         setStatus("correct");
+//
+
+
+
+//     }).catch(() => toast.error("Something went wrong. Please try again"));

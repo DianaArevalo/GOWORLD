@@ -1,17 +1,13 @@
-
 "use server"
 
-import { auth } from "@clerk/nextjs/server"
+import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
-
-import db from '@/db/drizzle';
+import db from "@/db/drizzle";
 import { getUserProgress } from "@/db/queries";
 import { challenges, challengesProgress, userProgress } from "@/db/schema";
-import { error } from "console";
 import { revalidatePath } from "next/cache";
-import { mutate } from "swr";
 
-export const upsetChallengeProgress = async (challengeId: number) => {
+export const upsertChallengeProgress = async (challengeId: number) => {
     const { userId } = await auth();
 
     if (!userId) {
@@ -21,7 +17,7 @@ export const upsetChallengeProgress = async (challengeId: number) => {
     const currentUserProgress = await getUserProgress();
 
     if (!currentUserProgress) {
-        throw new Error("user progress not found")
+        throw new Error("user progress not found");
     }
 
     const challenge = await db.query.challenges.findFirst({
@@ -29,7 +25,7 @@ export const upsetChallengeProgress = async (challengeId: number) => {
     });
 
     if (!challenge) {
-        throw new Error("Challenge not found")
+        throw new Error("challenge not found");
     }
 
     const lessonId = challenge.lessonId;
@@ -37,59 +33,58 @@ export const upsetChallengeProgress = async (challengeId: number) => {
     const existingChallengeProgress = await db.query.challengesProgress.findFirst({
         where: and(
             eq(challengesProgress.userId, userId),
-            eq(challengesProgress.challengesId, challengeId),
-        ),
+            eq(challengesProgress.challengesId, challengeId)
+        )
     });
 
     const isPractice = !!existingChallengeProgress;
 
-    // Allow progress regardless of practice or new attempt 
-
+    //Not if the user has a subscription
+    if (currentUserProgress.progress === 0 && !isPractice) {
+        return { error: "progress" };
+    }
 
     if (isPractice) {
         await db.update(challengesProgress).set({
-            completed: true,
+            completed: true
         }).where(
-            eq(challengesProgress.id, existingChallengeProgress ? existingChallengeProgress.id : 0)
+            eq(challengesProgress.id, existingChallengeProgress.id)
         );
 
-        const newProgress = currentUserProgress.progress + 1;
+        await db.update(userProgress).set({
+            progress: currentUserProgress.progress + 1,
+        }).where(eq(userProgress.userId, userId));
 
-        if (newProgress <= 20) {
-            await db.update(userProgress).set({
-                progress: newProgress
-            }).where(
-                eq(userProgress.userId, userId)
-            );
+        await revalidatePaths(lessonId);
 
-            const pathsToRevalidate = [
-                "/learn",
-                "/lesson",
-                "/quests",
-                "/leaderboard",
-                `/lesson/${lessonId}`
-            ];
-
-            // Assuming you have access to mutate from SWRConfig or another context
-            pathsToRevalidate.forEach(path => {
-                revalidatePath(path); // Replace with mutate(path) if using SWR
-            });
-
-            return;
-
-
-
-        } else {
-            return { error: "Blocked, you need to unlock more challenges" };
-        }
-
-
+        return { success: true };
     }
 
     await db.insert(challengesProgress).values({
-        userId,
         challengesId: challengeId,
-        completed: true
+        userId,
+        completed: true,
     });
 
-}
+    await db.update(userProgress).set({
+        progress: currentUserProgress.progress + 1,
+    }).where(eq(userProgress.userId, userId));
+
+    await revalidatePaths(lessonId);
+
+    return { success: true };
+};
+
+const revalidatePaths = async (lessonId: number) => {
+    const paths = [
+        "/learn",
+        "/lesson",
+        "/quests",
+        "/leaderboard",
+        `/lesson/${lessonId}`,
+    ];
+
+    for (const path of paths) {
+        await revalidatePath(path);
+    }
+};
