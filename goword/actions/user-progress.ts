@@ -97,7 +97,7 @@ export const addProgress = async (challengeId: number) => {
     //handle subscription
 
     await db.update(userProgress).set({
-        progress: Math.min(currentUserProgress.progress + 1, 3)
+        progress: Math.min(currentUserProgress.progress + 1, 5)
     }).where(eq(userProgress.userId, userId));
 
     revalidatePath("/shop");

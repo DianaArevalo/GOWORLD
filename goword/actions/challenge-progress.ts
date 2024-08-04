@@ -3,7 +3,7 @@
 import { auth } from "@clerk/nextjs/server";
 import { eq, and } from "drizzle-orm";
 import db from "@/db/drizzle";
-import { getUserProgress } from "@/db/queries";
+import { getLessonPercentage, getUserProgress } from "@/db/queries";
 import { challenges, challengesProgress, userProgress } from "@/db/schema";
 import { revalidatePath } from "next/cache";
 

@@ -102,7 +102,7 @@ export const userProgress = pgTable("user_progress", {
     userImageSrc: text("user_image_src").notNull().default("/logo-world.svg"),
     activeCourseId: integer("active_course_id").references(() => courses.id, { onDelete: "cascade" },
     ),
-    progress: integer("progress").notNull().default(3),
+    progress: integer("progress").notNull().default(5),
     hasActiveSubscription: boolean("has_active_subscription").notNull().default(false) // Nuevo campo añadido
 });
 

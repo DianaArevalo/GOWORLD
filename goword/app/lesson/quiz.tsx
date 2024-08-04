@@ -1,9 +1,11 @@
 "use client"
 
-import { useState, useTransition } from "react";
-import { toast } from "sonner";
 
-import { challengesOptions, challenges } from "@/db/schema";
+import { toast } from "sonner";
+import { useAudio } from "react-use";
+import { useState, useTransition } from "react";
+
+import { challengesOptions, challenges, challengesProgress } from "@/db/schema";
 // import { upsertUserProgress } from "@/actions/user-progress";
 import { addProgress } from "@/actions/user-progress";
 
@@ -11,6 +13,9 @@ import { Header } from "./header";
 import { Footer } from "./footer";
 import { QuestionBubble } from "./question-bubble";
 import { Challenge } from "./challenge";
+import { upsertChallengeProgress } from "@/actions/challenge-progress";
+import { error } from "console";
+
 
 
 type Props = {
@@ -29,6 +34,18 @@ export const Quiz = ({
     initialLessonChallenges,
     userSubscription,
 }: Props) => {
+    const [
+        correctAudio,
+        _c,
+        correctControls,
+    ] = useAudio({ src: "/correct.mp3" });
+
+    const [
+        incorrectAudio,
+        _i,
+        incorrectControls,
+    ] = useAudio({ src: "/incorrect.mp3" });
+
     console.log("initialLessonChallenges", initialLessonChallenges);
 
     const [pending, startTransition] = useTransition();
@@ -82,13 +99,8 @@ export const Quiz = ({
                 addProgress(challenge.id)
                     .then((response) => {
                         if (response?.error === "progress" || initialPercentage === 0) {
+                            correctControls.play();
                             setStatus("correct");
-                            setChallenges(
-                                (prev) =>
-                                    prev.map((ch) =>
-                                        ch.id === challenge.id ? { ...ch, completed: true } : ch
-                                    )
-                            );
                             setPercentage((prev) => prev + 100 / challenges.length);
                             setPercentage((prev) => Math.min(prev + 1))
                             onNext()
@@ -96,21 +108,32 @@ export const Quiz = ({
 
                             return
                         } else {
+                            incorrectControls.play()
                             setStatus("wrong")
                             console.log("Please try again");
                         }
 
                     }).catch(() => toast.error("Something went wrong. Please try again"))
+
             });
         } else {
             setStatus("wrong");
             console.log("Incorrect option!");
         }
-        // if (initialPercentage === 100) {
-        //     setPercentage((prev) => prev + 100 / challenges.length);
-        //     setPercentage((prev) => Math.min(prev + 1, 3))
-        //     // Avanzar al siguiente desafío  
-        // }
+
+        startTransition(() => {
+            upsertChallengeProgress(challenge.id).then((res) => {
+                if (res?.error === "continue") {
+                    setChallenges(
+                        (prev) =>
+                            prev.map((ch) =>
+                                ch.id === challenge.id ? { ...ch, completed: true } : ch
+                            )
+                    );
+
+                }
+            }).catch(() => toast.error("Something went wrong. Please try again"))
+        })
 
     };
 
@@ -121,6 +144,9 @@ export const Quiz = ({
 
     return (
         <>
+
+            {incorrectAudio}
+            {correctAudio}
             <Header
                 percentage={percentage}
                 hasActiveSubscription={!!userSubscription?.isActive}
